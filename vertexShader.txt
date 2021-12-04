@@ -1,0 +1,66 @@
+// vertex shader
+precision highp float;
+attribute vec3 position;
+attribute vec3 normal;
+uniform mat3 normalMatrix;
+uniform mat4 modelViewMatrix;
+uniform mat4 projectionMatrix;
+varying vec3 fNormal;
+varying vec3 fPosition;
+
+varying vec3 localPos;
+varying vec3 modelX;
+varying vec3 modelN;
+varying vec3 rawX;
+
+uniform float time;
+const float pi= 3.14159;
+
+/////////////////////////////////////////////////////////////////
+// Goal: Iron Spider Mask ///////////////////////////////////////
+// 1. Create a striped mask that resembles the Iron Spider
+// 2. Create the "Thanos 'snap' effect" - mask fades after snap, 
+//    and returns
+// 3. Create a moving spider head - mask rotates to notice his
+//    surrounding
+/////////////////////////////////////////////////////////////////
+
+
+// Defines rotating mask view
+vec2 Rotate2D(vec2 vec_in, float angle)
+{
+  vec2 vec_out;
+  vec_out.x=cos(angle)*vec_in.x-sin(angle)*vec_in.y;
+  vec_out.y=sin(angle)*vec_in.x+cos(angle)*vec_in.y;
+  return vec_out;
+}
+
+void main()
+{
+  
+  // Definies mask rotation from left to right
+  modelX=position;
+  rawX=position;
+  modelN=normal;  
+  
+  // Rotate head left to right
+  //modelX.xz = Rotate2D(modelX.xz,0.1*pi*modelX.z*sin(10.0*time)); 
+  modelN.xz = Rotate2D(modelN.xz,0.1*pi*modelN.x*cos(10.0*time));
+  
+  // Rotate head 360
+  modelX.xz = Rotate2D(modelX.xz,0.1*pi*modelX.z*tan(5.0*time)); 
+  
+  // Projections
+  fNormal = normalize(normalMatrix * modelN);
+  vec4 pos = modelViewMatrix * vec4(modelX, 1.0);
+  fPosition = pos.xyz;
+  
+  localPos = position;
+  
+  
+  gl_Position = projectionMatrix * pos;
+  
+}
+
+
+

@@ -1,0 +1,114 @@
+// Fragment shader
+precision highp float;
+uniform float time;
+uniform vec2 resolution;
+varying vec3 fPosition;
+varying vec3 fNormal;
+
+varying vec3 localPos;
+const vec3 lightColor = vec3(1.0,1.0,1.0);
+const vec3 objectColor = vec3(299,3,50);
+
+/////////////////////////////////////////////////////////////////
+// Goal: Iron Spider Mask ///////////////////////////////////////
+// 1. Create a striped mask that resembles the Iron Spider
+// 2. Create the "Thanos 'snap' effect" - mask fades after snap, 
+//    and returns
+// 3. Create a moving spider head - mask rotates to notice his
+//    surrounding
+/////////////////////////////////////////////////////////////////
+
+
+// Defines phong reflectance 
+vec2 phongReflectance(vec3 lightDir, float lightInt, float Ka, float Kd, float Ks, float specular_exp)
+{
+  
+  // Creates specular reflectance
+  vec3 s = normalize(lightDir);
+  vec3 v = normalize(-fPosition);
+  vec3 n = normalize(fNormal);
+  vec3 h = normalize(v+s);
+  float specular =  Ks * pow(max(0.0, dot(n,h)), specular_exp);
+  
+  // Creates diffuse reflectance
+  float diffuse = Ka + Kd * lightInt * max(0.0, dot(n, s));
+  
+  // Return specular and diffuse reflectance
+  return vec2(diffuse, specular);
+}
+
+// Defines all colors & patterns for spider mask
+float stripes(float val, float dst) {
+  
+  // Create alternating stripes
+  return floor(mod(val*dst,1.0)+.53);
+}
+
+
+// Helper function that draw lines
+float y(float x){
+    
+    return sin(x+9.0) + cos(x+10.0);
+    
+}
+
+
+
+
+void main()
+{
+  
+  // Defines light source colors
+  float theta = 2.0 * time;
+  vec3 lightSource1 = vec3(cos(theta),1,sin(theta));
+  vec3 lightSource2 = vec3(sin(theta),2,cos(theta));
+  
+  // Two colors from diffuse reflectance
+  float diffuse1 = pow(dot(fNormal,lightSource1),2.0);
+  float diffuse2 = pow(dot(fNormal,lightSource2),2.0);
+  vec3 col1 = diffuse1 * vec3(2,1,0);
+  vec3 col2 = diffuse2 * vec3(0,0,1);
+  
+  // Defines rotating light source direction
+  float angle = 50.0 * time;
+  vec3 lightDir= vec3 (sin(angle), cos(angle), 3.0);
+  vec3 lightCol = phongReflectance(lightDir, 9.0,8.0,7.0, 1.0,15.0).y*lightColor;
+  
+  // Draws spiderman mask using a circular pattern
+  vec3 cpos = localPos;
+  const float d = 5.0;
+  float linesY = stripes(y(cpos.x) * 10.0, d);
+  float linesX = stripes(sqrt((4.0*4.0)-(cpos.z*cpos.z)) * 20.0, d);
+  
+  
+  
+  // Changes color of spiderman mask
+  float maskStripe = 40.0* time;
+  vec3 objCol = (mod(linesX,2.0) > 0.5) && (true) ? vec3(1,0,sin(maskStripe+50.0)) : vec3(1,1,1); 
+  
+  
+// Defines pixel deformations/ fading effect
+float deplete = 5.0*time;
+
+// Partial fade to pixels (turning invisible)
+if(sin(deplete)*3.0 <= sin(cpos.x) + cos(cpos.y) * tan(cpos.z)){
+  
+  // Distorted pixels (staying in invisible form)
+  if(cos(40.0*cpos.x *time * cpos.y * 2.0)<0.5){
+    
+     
+    discard;
+  }
+  objCol = vec3(0.0,0.0,0.0); 
+  
+}
+
+
+  
+  
+  
+  gl_FragColor = vec4(lightCol * objCol, 1.0);
+}
+
+
+
